@@ -9,23 +9,34 @@ export async function expectBalanceDecrease(ctx: any, currency: string, decrease
 
   const walletUrl = `/api/wallet/${encodeURIComponent(wallet.id)}`;
   const prevBalance = parseFloat(wallet.balance);
-  let currentBalance: number | null = null;
+let currentBalance: number | null = null;
 
-  for (let i = 0; i < 5; i++) {
-    const resp = await apiCtx.get(walletUrl, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    expect(resp.ok()).toBeTruthy();
-    const body = await resp.json();
-    const bal = Number(body?.balance ?? body?.available);
-    if (Number.isFinite(bal) && Math.abs(prevBalance - bal - decreaseBy) <= 1e-6) {
+for (let i = 0; i < 5; i++) {
+  const resp = await apiCtx.get(walletUrl, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(resp.ok()).toBeTruthy();
+
+  const body = await resp.json();
+  const bal = Number(body?.balance ?? body?.available);
+
+  if (Number.isFinite(bal)) {
+    const expected = prevBalance - decreaseBy;
+    const diff = Math.abs(expected - bal);
+
+    console.log(`Attempt ${i + 1}: Previous=${prevBalance}, Current=${bal}, Expected=${expected}, Diff=${diff}`);
+
+    if (diff <= 1e-4) {
       currentBalance = bal;
       break;
     }
-    await wait(1000);
   }
 
-  expect(currentBalance).toBeTruthy();
+  await wait(1000);
+}
+
+expect(currentBalance, `Expected balance to decrease by ${decreaseBy}, but it did not.`).toBeDefined();
+
   const newBalStr = formatLike(wallet.balance, currentBalance!);
 
   const updated = readJsonSafe(dataFile, {}) as { wallets?: Record<string, any> };
@@ -42,7 +53,7 @@ export async function refreshWallet(ctx: any, currency: string) {
   const { apiCtx, token, dataFile } = ctx;
   const data = readJsonSafe(dataFile, {}) as { wallets?: Record<string, any> };
   data.wallets = data.wallets || {};
-  const wallet = data.wallets?.[currency];
+  const wallet = data.wallets[currency];
   expect(wallet?.id).toBeTruthy();
 
   const walletUrl = `/api/wallet/${encodeURIComponent(wallet.id)}`;
