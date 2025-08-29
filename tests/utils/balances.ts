@@ -3,7 +3,7 @@ import { wait, readJsonSafe, writeJson, formatLike } from './fs';
 
 export async function expectBalanceDecrease(ctx: any, currency: string, decreaseBy: number) {
   const { apiCtx, token, dataFile } = ctx;
-  const prevData = readJsonSafe(dataFile, {});
+  const prevData = readJsonSafe(dataFile, {}) as { wallets?: Record<string, any> };
   const wallet = prevData.wallets?.[currency];
   expect(wallet && wallet.id && wallet.balance).toBeTruthy();
 
@@ -28,7 +28,7 @@ export async function expectBalanceDecrease(ctx: any, currency: string, decrease
   expect(currentBalance).toBeTruthy();
   const newBalStr = formatLike(wallet.balance, currentBalance!);
 
-  const updated = readJsonSafe(dataFile, {});
+  const updated = readJsonSafe(dataFile, {}) as { wallets?: Record<string, any> };
   updated.wallets = updated.wallets || {};
   updated.wallets[currency] = {
     ...updated.wallets[currency],
@@ -40,7 +40,8 @@ export async function expectBalanceDecrease(ctx: any, currency: string, decrease
 
 export async function refreshWallet(ctx: any, currency: string) {
   const { apiCtx, token, dataFile } = ctx;
-  const data = readJsonSafe(dataFile, {});
+  const data = readJsonSafe(dataFile, {}) as { wallets?: Record<string, any> };
+  data.wallets = data.wallets || {};
   const wallet = data.wallets?.[currency];
   expect(wallet?.id).toBeTruthy();
 

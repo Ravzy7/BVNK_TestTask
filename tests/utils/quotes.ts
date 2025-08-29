@@ -3,12 +3,19 @@ import { readJsonSafe, writeJson } from './fs';
 
 export async function createQuote(ctx: any, from: string, to: string, amountIn: number) {
   const { apiCtx, token, dataFile } = ctx;
-  const data = readJsonSafe(dataFile, {});
+  const data = readJsonSafe(dataFile, {}) as { wallets?: Record<string, { id: string | number }> };
   const fromWallet = data.wallets?.[from];
   const toWallet = data.wallets?.[to];
 
   expect(fromWallet && fromWallet.id).toBeTruthy();
   expect(toWallet && toWallet.id).toBeTruthy();
+
+  if (!fromWallet || !fromWallet.id) {
+    throw new Error(`fromWallet is undefined or missing id for key: ${from}`);
+  }
+  if (!toWallet || !toWallet.id) {
+    throw new Error(`toWallet is undefined or missing id for key: ${to}`);
+  }
 
   const payload = {
     from, to,
@@ -37,7 +44,7 @@ export async function createQuote(ctx: any, from: string, to: string, amountIn: 
 
 export async function acceptLastQuote(ctx: any) {
   const { apiCtx, token, dataFile } = ctx;
-  const { lastQuoteUuid } = readJsonSafe(dataFile, {});
+  const { lastQuoteUuid } = readJsonSafe(dataFile, {}) as { lastQuoteUuid?: string };
   expect(lastQuoteUuid).toBeTruthy();
 
   const acceptUrl = `/api/v1/quote/accept/${encodeURIComponent(String(lastQuoteUuid))}`;
